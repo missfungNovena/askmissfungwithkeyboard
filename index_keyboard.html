@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>與虛擬馮老師語文對話練習</title>
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 載入適合小學學童閱讀的圓潤清晰中文字體 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================================
+       全域字體與童趣溫暖視覺設定
+       ========================================================= */
+    :root {
+      --bg-cream: #FFFDF4;
+      --pastel-yellow: #FEF3C7;
+      --pastel-yellow-border: #F59E0B;
+      --sky-blue: #E6F4FF;
+      --sky-blue-accent: #0284C7;
+      --grass-green: #E8F8EE;
+      --grass-green-accent: #16A34A;
+      --warm-orange: #F97316;
+      --text-main: #1E293B;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: linear-gradient(180deg, #E6F4FF 0%, #FFFDF4 48%, #E8F8EE 100%);
+      font-family: 'Zen Maru Gothic', 'Noto Sans TC', 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+      color: var(--text-main);
+      line-height: 1.6;
+      user-select: none;
+    }
+
+    /* 允許學生在輸入框內正常選取與編輯文字 */
+    input, select, textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    /* 自訂柔和捲軸（對話氣泡區） */
+    .chat-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    .chat-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 9999px;
+    }
+    .chat-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.45);
+      border-radius: 9999px;
+    }
+    .chat-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.65);
+    }
+
+    /* =========================================================
+       虛擬馮老師頭像動態效果 (Idle / Listening / Speaking)
+       ========================================================= */
+    @keyframes teacherIdleFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+
+    @keyframes teacherSpeakBounce {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      30% { transform: translateY(-6px) scale(1.03); }
+      60% { transform: translateY(-2px) scale(1.01); }
+    }
+
+    @keyframes teacherListenTilt {
+      0%, 100% { transform: rotate(0deg) scale(1.02); }
+      25% { transform: rotate(-3deg) scale(1.04); }
+      75% { transform: rotate(3deg) scale(1.04); }
+    }
+
+    @keyframes haloPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.35), 0 0 24px 8px rgba(56, 189, 248, 0.35);
+      }
+      50% {
+        box-shadow: 0 0 0 12px rgba(251, 191, 36, 0.55), 0 0 36px 14px rgba(34, 197, 94, 0.45);
+      }
+    }
+
+    @keyframes listenRingPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.3), 0 0 22px 6px rgba(34, 197, 94, 0.25);
+      }
+      50% {
+        box-shadow: 0 0 0 12px rgba(34, 197, 94, 0.5), 0 0 32px 12px rgba(34, 197, 94, 0.4);
+      }
+    }
+
+    @keyframes mouthTalk {
+      0%, 100% { transform: scaleY(0.35); }
+      25% { transform: scaleY(1.15); }
+      50% { transform: scaleY(0.55); }
+      75% { transform: scaleY(1.25); }
+    }
+
+    @keyframes blinkEyes {
+      0%, 92%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.1); }
+    }
+
+    .avatar-container {
+      transition: all 0.3s ease;
+    }
+
+    .avatar-container.state-idle {
+      animation: teacherIdleFloat 3.2s ease-in-out infinite;
+      box-shadow: 0 8px 20px rgba(14, 116, 144, 0.14);
+    }
+
+    .avatar-container.state-speaking {
+      animation: teacherSpeakBounce 0.65s ease-in-out infinite, haloPulse 1.2s ease-in-out infinite;
+      border-color: #F59E0B !important;
+    }
+
+    .avatar-container.state-listening {
+      animation: teacherListenTilt 1.8s ease-in-out infinite, listenRingPulse 1.4s ease-in-out infinite;
+      border-color: #22C55E !important;
+    }
+
+    .teacher-eyes {
+      transform-origin: center 54px;
+      animation: blinkEyes 4.5s infinite;
+    }
+
+    .teacher-mouth-speaking {
+      transform-origin: center 75px;
+      animation: mouthTalk 0.32s ease-in-out infinite;
+    }
+
+    /* =========================================================
+       麥克風錄音動態波紋
+       ========================================================= */
+    @keyframes micRipple {
+      0% {
+        transform: scale(1);
+        opacity: 0.75;
+      }
+      100% {
+        transform: scale(1.65);
+        opacity: 0;
+      }
+    }
+
+    .mic-ripple-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      background: rgba(239, 68, 68, 0.4);
+      pointer-events: none;
+      animation: micRipple 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
+
+    .mic-ripple-ring.delay-1 {
+      animation-delay: 0.45s;
+    }
+
+    /* 氣泡彈入動畫 */
+    @keyframes bubblePop {
+      0% { opacity: 0; transform: translateY(10px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .bubble-animate {
+      animation: bubblePop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* 橫向小螢幕或平板彈出虛擬鍵盤時，自動精簡上方空間以確保對話與輸入框清晰可見 */
+    @media (max-height: 540px) {
+      .compact-hide-on-landscape {
+        display: none !important;
+      }
+      .avatar-size-responsive {
+        width: 60px !important;
+        height: 60px !important;
+      }
+    }
+
+    body.keyboard-open .avatar-stage-section {
+      padding-top: 0.15rem !important;
+      padding-bottom: 0.15rem !important;
+    }
+    body.keyboard-open .avatar-size-responsive {
+      width: 56px !important;
+      height: 56px !important;
+    }
+    body.keyboard-open .prompt-section {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-[100dvh] w-full overflow-hidden">
+
+  <!-- =========================================================
+       1. 頂部標題與家長／老師設定列
+       ========================================================= -->
+  <header class="shrink-0 w-full bg-white/90 backdrop-blur-md border-b-2 border-sky-200 px-3 sm:px-6 py-2 flex items-center justify-between gap-2 z-20 shadow-sm">
+    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-xl shrink-0 shadow-xs">
+        🏫
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-base sm:text-xl font-black text-slate-800 truncate tracking-wide">
+          與虛擬馮老師語文對話練習
+        </h1>
+        <div class="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-500">
+          <span id="modeBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 truncate">
+            🟢 離線規則模擬模式（無需 API Key）
+          </span>
+          <span id="langBadge" class="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-300">
+            🗣️ 廣東話 (zh-HK)
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右側：工作紙五顆星進度 + 家長／老師設定按鈕 -->
+    <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+      <!-- 五題練習集星進度徽章（不直接洩漏題目文字） -->
+      <div id="starProgressBox" title="工作紙 5 題練習進度星星" class="flex items-center gap-0.5 sm:gap-1 bg-amber-50 border-2 border-amber-300 px-2 sm:px-3 py-1 rounded-2xl">
+        <span class="hidden lg:inline text-xs font-black text-amber-800 mr-1">工作紙進度：</span>
+        <span id="star-0" class="text-base sm:text-lg transition-transform">☆</span>
+        <span id="star-1" class="text-base sm:text-lg transition-transform">☆</span>
+        <span id="star-2" class="text-base sm:text-lg transition-transform">☆</span>
+        <span id="star-3" class="text-base sm:text-lg transition-transform">☆</span>
+        <span id="star-4" class="text-base sm:text-lg transition-transform">☆</span>
+      </div>
+
+      <button
+        id="openSettingsBtn"
+        type="button"
+        class="flex items-center gap-1 sm:gap-1.5 px-2.5 py-2 sm:px-4 sm:py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs sm:text-sm border-2 border-slate-300 transition shadow-xs cursor-pointer"
+        aria-label="家長或老師設定"
+      >
+        <span>⚙️</span>
+        <span class="hidden sm:inline">家長／老師設定</span>
+        <span class="sm:hidden">設定</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       2. 醒目重要句式提示框：「句式提示：【 馮老師 】會【 做什麼事情 】嗎？」
+       ========================================================= -->
+  <section class="prompt-section shrink-0 w-full px-3 sm:px-6 pt-2 pb-1 z-10">
+    <div class="max-w-3xl mx-auto bg-gradient-to-r from-amber-100 via-orange-50 to-amber-100 border-2 border-orange-300 rounded-2xl sm:rounded-3xl px-3 sm:px-5 py-2 shadow-sm flex flex-col items-center justify-center gap-1 text-center">
+      <div class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+        <span class="inline-flex items-center gap-1 bg-orange-500 text-white text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-full shadow-xs">
+          ✨ 句式提示
+        </span>
+        <p class="text-lg sm:text-2xl md:text-2xl font-black tracking-wide text-slate-800">
+          【 <span class="text-orange-600">馮老師</span> 】<span class="text-rose-600 underline decoration-amber-400 decoration-4 underline-offset-4">會</span>【 <span class="text-sky-700">做什麼事情</span> 】<span class="text-rose-600 underline decoration-amber-400 decoration-4 underline-offset-4">嗎？</span>
+        </p>
+        <button
+          id="toggleHintBtn"
+          type="button"
+          class="text-xs font-black px-2.5 py-1 rounded-xl bg-white/90 hover:bg-white text-amber-800 border border-amber-300 shadow-2xs transition cursor-pointer"
+        >
+          💡 範圍小提示
+        </button>
+      </div>
+      <!-- 可切換顯示的範圍提示（僅提示類別，不直接洩漏答案） -->
+      <p id="topicHintBar" class="hidden text-xs sm:text-sm font-bold text-amber-900 bg-white/85 px-3 py-1 rounded-xl border border-amber-200">
+        🌟 想想工作紙上的 5 件事情：運動、家務、藝術繪畫、舞台表演、閱讀書籍！
+      </p>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       3. 中央上方：虛擬馮老師動態插畫舞台（含微笑、眼鏡、書本元素）
+       ========================================================= -->
+  <section class="avatar-stage-section shrink-0 w-full px-3 pt-1 pb-1.5 flex flex-col items-center justify-center z-10">
+    <div class="relative flex flex-col items-center">
+      <!-- 馮老師圓形大頭貼插畫 -->
+      <div
+        id="teacherAvatarWrapper"
+        class="avatar-container state-idle avatar-size-responsive w-24 h-24 sm:w-28 sm:h-28 md:w-30 md:h-30 rounded-full bg-gradient-to-b from-sky-100 to-amber-100 border-4 border-white overflow-hidden flex items-center justify-center relative"
+      >
+        <!-- 原創可愛親切香港小學女教師 SVG 插畫（含眼鏡與書本元素） -->
+        <svg viewBox="0 0 120 120" class="w-full h-full" aria-label="虛擬馮老師頭像">
+          <!-- 背景柔和光圈 -->
+          <circle cx="60" cy="60" r="56" fill="#FEF9C3" />
+          <circle cx="60" cy="60" r="48" fill="#E6F4FF" opacity="0.7" />
+
+          <!-- 後髮（溫暖深棕色長髮） -->
+          <path d="M26 54 C24 24, 96 24, 94 54 C96 80, 92 96, 84 100 L36 100 C28 96, 24 80, 26 54 Z" fill="#4A2E2B" />
+
+          <!-- 老師衣領與柔和草綠針織外套 -->
+          <path d="M24 118 C26 93, 42 86, 60 86 C78 86, 94 93, 96 118 Z" fill="#34D399" />
+          <!-- 白色襯衫內搭與小領結 -->
+          <path d="M46 87 L60 102 L74 87 Z" fill="#FFFFFF" />
+          <circle cx="60" cy="93" r="3" fill="#F97316" />
+
+          <!-- 脖子 -->
+          <rect x="52" y="75" width="16" height="13" rx="6" fill="#FDE6D8" />
+
+          <!-- 臉部輪廓 -->
+          <ellipse cx="60" cy="54" rx="25" ry="26" fill="#FFF0E5" />
+
+          <!-- 可愛紅暈 -->
+          <ellipse cx="42" cy="61" rx="5.2" ry="3" fill="#FDA4AF" opacity="0.65" />
+          <ellipse cx="78" cy="61" rx="5.2" ry="3" fill="#FDA4AF" opacity="0.65" />
+
+          <!-- 眉毛（溫柔彎眉） -->
+          <path d="M41 43 Q47 39 53 43" stroke="#4A2E2B" stroke-width="2.3" stroke-linecap="round" fill="none" />
+          <path d="M67 43 Q73 39 79 43" stroke="#4A2E2B" stroke-width="2.3" stroke-linecap="round" fill="none" />
+
+          <!-- 眼睛（會眨眼） -->
+          <g class="teacher-eyes">
+            <circle cx="47" cy="52" r="3.6" fill="#1E293B" />
+            <circle cx="48.2" cy="50.7" r="1.2" fill="#FFFFFF" />
+            <circle cx="73" cy="52" r="3.6" fill="#1E293B" />
+            <circle cx="74.2" cy="50.7" r="1.2" fill="#FFFFFF" />
+          </g>
+
+          <!-- 溫柔圓框眼鏡 -->
+          <circle cx="47" cy="52" r="9" stroke="#D97706" stroke-width="2" fill="rgba(255,255,255,0.18)" />
+          <circle cx="73" cy="52" r="9" stroke="#D97706" stroke-width="2" fill="rgba(255,255,255,0.18)" />
+          <line x1="56" y1="52" x2="64" y2="52" stroke="#D97706" stroke-width="2" />
+
+          <!-- 小鼻子 -->
+          <path d="M59 57 Q60 60 61.5 59" stroke="#E2A388" stroke-width="2" stroke-linecap="round" fill="none" />
+
+          <!-- 嘴巴：平時微笑（預設顯示） -->
+          <path
+            id="teacherMouthIdle"
+            d="M52 67 Q60 74 68 67"
+            stroke="#E11D48"
+            stroke-width="2.8"
+            stroke-linecap="round"
+            fill="none"
+          />
+
+          <!-- 嘴巴：說話時開合動態（說話時顯示） -->
+          <g id="teacherMouthSpeak" class="hidden teacher-mouth-speaking">
+            <ellipse cx="60" cy="69" rx="6.2" ry="5.2" fill="#E11D48" />
+            <path d="M55 70 Q60 73 65 70" fill="#FDA4AF" />
+          </g>
+
+          <!-- 前髮瀏海與可愛髮夾 -->
+          <path d="M34 46 C36 25, 84 25, 86 46 C78 35, 66 35, 60 42 C52 34, 42 36, 34 46 Z" fill="#4A2E2B" />
+          <rect x="74" y="33" width="10" height="4" rx="2" transform="rotate(18 74 33)" fill="#FBBF24" />
+
+          <!-- 暖橘色打開的課本／故事書元素 -->
+          <g transform="translate(0, 2)">
+            <path d="M35 101 L60 105 L60 118 L35 114 Z" fill="#FB923C" stroke="#EA580C" stroke-width="1.5" stroke-linejoin="round" />
+            <path d="M85 101 L60 105 L60 118 L85 114 Z" fill="#FDBA74" stroke="#EA580C" stroke-width="1.5" stroke-linejoin="round" />
+            <path d="M38 99 L60 103 L60 115 L38 111 Z" fill="#FFFBEB" />
+            <path d="M82 99 L60 103 L60 115 L82 111 Z" fill="#FEF3C7" />
+            <line x1="60" y1="103" x2="60" y2="118" stroke="#EA580C" stroke-width="1.5" />
+          </g>
+        </svg>
+      </div>
+
+      <!-- 馮老師即時狀態小標籤 -->
+      <div
+        id="teacherStatusPill"
+        class="mt-1 px-3.5 py-0.5 rounded-full bg-white/95 border-2 border-sky-200 shadow-xs text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5"
+      >
+        <span id="teacherStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+        <span id="teacherStatusText">馮老師準備好跟你聊天啦！</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       4. 中間可捲動對話氣泡區（顯示馮老師與學生對話紀錄）
+       ========================================================= -->
+  <main class="flex-1 min-h-0 w-full px-3 sm:px-6 py-1 flex flex-col">
+    <div
+      id="chatContainer"
+      class="chat-scroll flex-1 w-full max-w-3xl mx-auto bg-white/80 backdrop-blur-sm border-2 border-white rounded-3xl p-3 sm:p-5 overflow-y-auto shadow-inner flex flex-col gap-3 sm:gap-4"
+      aria-live="polite"
+    >
+      <!-- 對話氣泡將由 JavaScript 動態插入 -->
+    </div>
+  </main>
+
+  <!-- =========================================================
+       5. 底部雙軌互動控制區（直接語音說話 + 鍵盤語音輸入／文字輸入）
+       ========================================================= -->
+  <footer class="shrink-0 w-full bg-white/95 backdrop-blur-md border-t-2 border-emerald-200 px-3 sm:px-6 pt-2 pb-2.5 sm:pb-3.5 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+    <div class="max-w-3xl mx-auto flex flex-col gap-2">
+
+      <!-- (a) 學生文字／鍵盤語音輸入（聽寫）列 -->
+      <form id="textInputForm" class="w-full flex items-center gap-2" autocomplete="off">
+        <div class="relative flex-1 flex items-center">
+          <span class="absolute left-3.5 text-lg pointer-events-none" aria-hidden="true">⌨️</span>
+          <input
+            id="studentTextInput"
+            type="text"
+            inputmode="text"
+            enterkeyhint="send"
+            placeholder="點這裡用鍵盤「語音輸入（聽寫）」或打字..."
+            aria-label="輸入或用鍵盤語音聽寫你想問馮老師的句子"
+            class="w-full pl-10 pr-3 py-2.5 sm:py-3 rounded-2xl bg-sky-50/80 focus:bg-white border-2 border-sky-300 focus:border-orange-400 focus:outline-none text-base sm:text-lg font-bold text-slate-800 placeholder:text-slate-400 placeholder:text-sm sm:placeholder:text-base transition shadow-2xs"
+          />
+        </div>
+        <button
+          id="sendTextBtn"
+          type="submit"
+          class="shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-b from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 active:scale-95 text-white font-black text-base sm:text-lg border-2 border-orange-300 shadow-sm transition cursor-pointer flex items-center gap-1"
+        >
+          <span>送出</span>
+          <span>📤</span>
+        </button>
+      </form>
+
+      <!-- (b) 語音狀態提示與三大功能按鈕列：重聽 / 大型麥克風 / 重新開始 -->
+      <div class="w-full flex flex-col items-center">
+        <p id="micHintText" class="text-xs sm:text-sm font-bold text-slate-600 mb-1.5 text-center leading-snug">
+          按綠色按鈕直接說話，或點上方輸入框用鍵盤「麥克風聽寫」喔！
+        </p>
+
+        <div class="w-full flex items-center justify-center gap-2.5 sm:gap-5">
+          <!-- 左側：重聽馮老師說話 -->
+          <button
+            id="replayBtn"
+            type="button"
+            class="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-amber-100 hover:bg-amber-200 active:scale-95 text-amber-900 border-2 border-amber-300 font-black text-xs sm:text-base shadow-xs transition cursor-pointer shrink-0"
+            title="再聽一次馮老師剛才說的話"
+          >
+            <span class="text-lg sm:text-xl">🔊</span>
+            <span>重聽馮老師說話</span>
+          </button>
+
+          <!-- 中央：大型麥克風說話按鈕 -->
+          <div class="relative flex items-center justify-center">
+            <span id="micRipple1" class="hidden mic-ripple-ring"></span>
+            <span id="micRipple2" class="hidden mic-ripple-ring delay-1"></span>
+
+            <button
+              id="micBtn"
+              type="button"
+              class="relative z-10 flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-3.5 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 active:scale-95 text-white border-3 border-white shadow-md font-black text-base sm:text-xl tracking-wide transition cursor-pointer min-w-[165px] sm:min-w-[225px]"
+              aria-label="按一下開始說話"
+            >
+              <span id="micBtnIcon" class="text-xl sm:text-2xl">🎤</span>
+              <span id="micBtnLabel">按一下開始說話</span>
+            </button>
+          </div>
+
+          <!-- 右側：重新開始練習 -->
+          <button
+            id="restartBtn"
+            type="button"
+            class="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-sky-100 hover:bg-sky-200 active:scale-95 text-sky-900 border-2 border-sky-300 font-black text-xs sm:text-base shadow-xs transition cursor-pointer shrink-0"
+            title="清除紀錄並重新開始對話練習"
+          >
+            <span class="text-lg sm:text-xl">🔄</span>
+            <span class="hidden sm:inline">重新開始練習</span>
+            <span class="sm:hidden">重新開始</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================
+       6. 首次開啟歡迎卡片（解鎖瀏覽器 TTS 自動朗讀限制）
+       ========================================================= -->
+  <div
+    id="welcomeModal"
+    class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4"
+  >
+    <div class="bg-gradient-to-b from-amber-50 via-white to-sky-50 border-4 border-amber-300 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl bubble-animate">
+      <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-amber-100 border-4 border-amber-300 flex items-center justify-center text-5xl shadow-md">
+        👩‍🏫
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-black text-slate-800 mb-2">
+        歡迎來到語文小課堂！
+      </h2>
+      <p class="text-base sm:text-lg font-bold text-slate-600 leading-relaxed mb-4">
+        今天我們要和親切的<span class="text-orange-600">虛擬馮老師</span>一起練習用
+        <span class="inline-block bg-amber-100 text-rose-600 px-2.5 py-0.5 rounded-xl border border-amber-300 font-black my-1">
+          【 馮老師 】會【 做什麼事情 】嗎？
+        </span>
+        來發問喔！
+      </p>
+
+      <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-3.5 mb-6 text-left text-sm font-bold text-sky-900 space-y-1.5">
+        <p>💡 <strong>兩種方法都可以跟馮老師聊天：</strong></p>
+        <p>1. 按綠色<strong>「按一下開始說話」</strong>按鈕直接講話 🎤</p>
+        <p>2. 點輸入框，用平板鍵盤的<strong>「語音輸入（聽寫）」</strong>或打字 ⌨️</p>
+      </div>
+
+      <button
+        id="startPracticeBtn"
+        type="button"
+        class="w-full py-4 px-6 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 active:scale-95 text-white font-black text-xl sm:text-2xl shadow-lg border-4 border-white transition cursor-pointer"
+      >
+        🌟 開始練習
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       7. 家長／老師設定彈窗
+       ========================================================= -->
+  <div
+    id="settingsModal"
+    class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
+  >
+    <div class="bg-white border-4 border-sky-300 rounded-3xl max-w-xl w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- 彈窗標題 -->
+      <div class="bg-sky-100 px-5 py-4 border-b-2 border-sky-200 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">⚙️</span>
+          <h3 class="text-lg sm:text-xl font-black text-slate-800">家長／老師設定</h3>
+        </div>
+        <button
+          id="closeSettingsBtn"
+          type="button"
+          class="w-9 h-9 rounded-full bg-white hover:bg-rose-100 text-slate-600 hover:text-rose-600 font-black text-lg flex items-center justify-center border border-slate-300 cursor-pointer"
+          aria-label="關閉設定"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- 彈窗內容區（可捲動） -->
+      <div class="p-5 overflow-y-auto space-y-5 text-sm sm:text-base">
+        <!-- 1. 語音辨識語言設定 -->
+        <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4">
+          <label for="sttLangSelect" class="block font-black text-slate-800 mb-1.5">
+            🗣️ 語音辨識語言（學生說話口音）
+          </label>
+          <select
+            id="sttLangSelect"
+            class="w-full p-3 rounded-xl border-2 border-slate-300 bg-white font-bold text-slate-700 focus:outline-none focus:border-sky-500"
+          >
+            <option value="zh-HK">廣東話／粵語 (zh-HK) — 香港小一預設</option>
+            <option value="zh-TW">普通話／國語 (zh-TW)</option>
+            <option value="zh-CN">普通話 (zh-CN)</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1.5 font-medium">
+            註：即使選擇廣東話收音，系統仍會嚴格檢查學生是否說出規範書面語「……會……嗎？」。
+          </p>
+        </div>
+
+        <!-- 2. OpenAI API Key 設定（僅供家長/老師填寫） -->
+        <div class="bg-amber-50/70 border-2 border-amber-200 rounded-2xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+            <label for="apiKeyInput" class="font-black text-slate-800">
+              🔑 OpenAI API Key（選填）
+            </label>
+            <span id="apiStatusTag" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+              目前：離線規則模擬模式（無需 API Key）
+            </span>
+          </div>
+          <div class="flex gap-2">
+            <input
+              id="apiKeyInput"
+              type="password"
+              placeholder="sk-..."
+              autocomplete="off"
+              class="flex-1 p-3 rounded-xl border-2 border-amber-300 bg-white font-mono text-sm text-slate-700 focus:outline-none focus:border-amber-500"
+            />
+            <button
+              id="toggleKeyVisibilityBtn"
+              type="button"
+              class="px-3 rounded-xl bg-white border-2 border-amber-300 text-slate-600 font-bold text-xs hover:bg-amber-100 cursor-pointer"
+            >
+              顯示
+            </button>
+          </div>
+          <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+            🔒 <strong>安全說明：</strong>金鑰僅儲存在此瀏覽器的 <code class="bg-white px-1 rounded">localStorage</code> 中，絕不會寫入程式碼。若留空，網頁將自動使用內建的<strong>「離線規則模擬模式（無需 API Key）」</strong>，完全依照工作紙題庫與四重句式規則運作！
+          </p>
+        </div>
+
+        <!-- 3. 工作紙指定題庫參考（供家長或老師核對） -->
+        <div class="bg-emerald-50/80 border-2 border-emerald-200 rounded-2xl p-4">
+          <h4 class="font-black text-emerald-900 mb-2 flex items-center gap-1.5">
+            <span>📋</span>
+            <span>工作紙指定題庫（唯一允許回答的 5 條問題）</span>
+          </h4>
+          <ul class="space-y-1.5 text-xs sm:text-sm font-bold text-slate-700">
+            <li class="bg-white px-3 py-2 rounded-xl border border-emerald-200 flex justify-between gap-2">
+              <span>1. 馮老師會踢足球嗎？</span>
+              <span class="text-rose-600 shrink-0">→ 不會踢足球</span>
+            </li>
+            <li class="bg-white px-3 py-2 rounded-xl border border-emerald-200 flex justify-between gap-2">
+              <span>2. 馮老師會打掃嗎？</span>
+              <span class="text-emerald-600 shrink-0">→ 會打掃</span>
+            </li>
+            <li class="bg-white px-3 py-2 rounded-xl border border-emerald-200 flex justify-between gap-2">
+              <span>3. 馮老師會畫畫嗎？</span>
+              <span class="text-emerald-600 shrink-0">→ 會畫畫</span>
+            </li>
+            <li class="bg-white px-3 py-2 rounded-xl border border-emerald-200 flex justify-between gap-2">
+              <span>4. 馮老師會變魔術嗎？</span>
+              <span class="text-rose-600 shrink-0">→ 不會變魔術</span>
+            </li>
+            <li class="bg-white px-3 py-2 rounded-xl border border-emerald-200 flex justify-between gap-2">
+              <span>5. 馮老師會看書嗎？</span>
+              <span class="text-emerald-600 shrink-0">→ 會看書</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 彈窗底部儲存按鈕 -->
+      <div class="bg-slate-50 px-5 py-3.5 border-t-2 border-slate-200 flex justify-end gap-3 shrink-0">
+        <button
+          id="clearKeyBtn"
+          type="button"
+          class="px-4 py-2.5 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-sm border border-rose-300 cursor-pointer"
+        >
+          清除
+        </button>
+        <button
+          id="saveSettingsBtn"
+          type="button"
+          class="px-6 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black text-sm shadow-sm cursor-pointer"
+        >
+          儲存
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       8. 自訂輕量提示訊息框（取代 alert / confirm）
+       ========================================================= -->
+  <div
+    id="toastBanner"
+    class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-800/95 text-white px-5 py-3 rounded-2xl shadow-xl font-bold text-sm sm:text-base text-center max-w-[90vw] bubble-animate"
+  >
+    提示訊息
+  </div>
+
+  <!-- =========================================================
+       JavaScript 核心語音與教學規則引擎
+       ========================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ---------------------------------------------------------
+         常數與題庫定義
+         --------------------------------------------------------- */
+      const GREETING_TEXT = '你好呀！今日我們一起練習句式，請你以「……會……嗎？」跟我交談呀！';
+
+      // 工作紙指定五條題庫
+      const WORKSHEET_QA = [
+        {
+          id: 0,
+          action: '踢足球',
+          aliases: ['踢足球'],
+          reply: '你說得真好！馮老師不會踢足球。'
+        },
+        {
+          id: 1,
+          action: '打掃',
+          aliases: ['打掃', '打掃衛生', '做打掃'],
+          reply: '你說得真好！馮老師會打掃。'
+        },
+        {
+          id: 2,
+          action: '畫畫',
+          aliases: ['畫畫', '畫圖畫'],
+          reply: '你說得真好！馮老師會畫畫。'
+        },
+        {
+          id: 3,
+          action: '變魔術',
+          aliases: ['變魔術'],
+          reply: '你說得真好！馮老師不會變魔術。'
+        },
+        {
+          id: 4,
+          action: '看書',
+          aliases: ['看書', '閱讀'],
+          reply: '你說得真好！馮老師會看書。'
+        }
+      ];
+
+      // 給 OpenAI API 使用的完整 System Prompt
+      const SYSTEM_PROMPT = `# Role & Target Audience
+你是一位親切、有耐心的小學語文老師（馮老師）。你的對話對象是一名小學一年級的學生，請保持語氣簡單、容易理解且非常友善。
+# 工作紙指定題庫（唯一允許回答的內容）
+1. 問題：馮老師會踢足球嗎？｜答案：馮老師不會踢足球。
+2. 問題：馮老師會打掃嗎？｜答案：馮老師會打掃。
+3. 問題：馮老師會畫畫嗎？｜答案：馮老師會畫畫。
+4. 問題：馮老師會變魔術嗎？｜答案：馮老師不會變魔術。
+5. 問題：馮老師會看書嗎？｜答案：馮老師會看書。
+# Core Rules & Workflow（請嚴格依序檢查學生說出的句子）
+1. 開場白（網頁載入或按下開始時，馮老師主動說第一句話並朗讀）：
+  - 「你好呀！今日我們一起練習句式，請你以『……會……嗎？』跟我交談呀！」
+2. 句式與語言規範檢查（每次只修正目前最主要的一個問題，依序檢查）：
+  - 【檢查 1：非廣東話口語】 若學生使用了廣東話口語字眼（例如：「呢個」、「唔係」、「點解」、「做咩」、「係咪」、「識唔識」、「唔會」、「踢波」、「睇書」等），請溫柔提示他：「請你以『……會……嗎？』進行交談。」
+  - 【檢查 2：句式結構】 若學生沒有使用「……會……嗎？」句式，請提示他：「請你以『……會……嗎？』進行交談。」
+  - 【檢查 3：人物開頭】 若學生使用了「……會……嗎？」，但句子開頭不是「馮老師」（例如未說人物或用了「你」、「老師」或其他人），請提示他：「一開始要出現人物。」
+  - 【檢查 4：動詞接續】 若學生使用了「……會……嗎？」，但「會」字後面接的不是「事情」（動詞/活動），請提示他：「『會』之後要出現事情。」
+3. 回答規則：
+  - 當學生的句子完全符合規範（開頭為「馮老師」 + 使用「……會……嗎？」 + 「會」後接事情/動詞 + 書面語）時，請核對【工作紙指定題庫】：
+    - 若屬於題庫內的 5 條問題之一，請給予簡短鼓勵並直接回答對應的答案（例如：「你說得真好！馮老師會打掃。」）。
+    - 若問了工作紙以外的問題（例如：「馮老師會游泳嗎？」），請統一回答：「請你根據工作紙發問。」
+# Output Style
+- 語氣：溫柔、鼓勵性、適合小一學童。
+- 回覆字數精簡，方便語音朗讀，切勿長篇大論。`;
+
+      // localStorage 儲存鍵名
+      const STORAGE_KEY_API = 'feng_teacher_openai_api_key';
+      const STORAGE_KEY_LANG = 'feng_teacher_stt_lang';
+
+      /* ---------------------------------------------------------
+         應用程式狀態管理
+         --------------------------------------------------------- */
+      const state = {
+        apiKey: localStorage.getItem(STORAGE_KEY_API) || '',
+        sttLang: localStorage.getItem(STORAGE_KEY_LANG) || 'zh-HK',
+        isListening: false,
+        isSpeaking: false,
+        isThinking: false,
+        lastTeacherMessage: GREETING_TEXT,
+        chatHistory: [],
+        completedStars: [false, false, false, false, false],
+        recognition: null,
+        interimBubbleEl: null,
+        finalTranscriptBuffer: '',
+        speakTimerFallback: null
+      };
+
+      /* ---------------------------------------------------------
+         DOM 元素參照
+         --------------------------------------------------------- */
+      const dom = {
+        welcomeModal: document.getElementById('welcomeModal'),
+        startPracticeBtn: document.getElementById('startPracticeBtn'),
+        chatContainer: document.getElementById('chatContainer'),
+        teacherAvatarWrapper: document.getElementById('teacherAvatarWrapper'),
+        teacherMouthIdle: document.getElementById('teacherMouthIdle'),
+        teacherMouthSpeak: document.getElementById('teacherMouthSpeak'),
+        teacherStatusDot: document.getElementById('teacherStatusDot'),
+        teacherStatusText: document.getElementById('teacherStatusText'),
+        textInputForm: document.getElementById('textInputForm'),
+        studentTextInput: document.getElementById('studentTextInput'),
+        sendTextBtn: document.getElementById('sendTextBtn'),
+        toggleHintBtn: document.getElementById('toggleHintBtn'),
+        topicHintBar: document.getElementById('topicHintBar'),
+        micBtn: document.getElementById('micBtn'),
+        micBtnIcon: document.getElementById('micBtnIcon'),
+        micBtnLabel: document.getElementById('micBtnLabel'),
+        micRipple1: document.getElementById('micRipple1'),
+        micRipple2: document.getElementById('micRipple2'),
+        micHintText: document.getElementById('micHintText'),
+        replayBtn: document.getElementById('replayBtn'),
+        restartBtn: document.getElementById('restartBtn'),
+        modeBadge: document.getElementById('modeBadge'),
+        langBadge: document.getElementById('langBadge'),
+        openSettingsBtn: document.getElementById('openSettingsBtn'),
+        closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+        settingsModal: document.getElementById('settingsModal'),
+        sttLangSelect: document.getElementById('sttLangSelect'),
+        apiKeyInput: document.getElementById('apiKeyInput'),
+        toggleKeyVisibilityBtn: document.getElementById('toggleKeyVisibilityBtn'),
+        apiStatusTag: document.getElementById('apiStatusTag'),
+        saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+        clearKeyBtn: document.getElementById('clearKeyBtn'),
+        toastBanner: document.getElementById('toastBanner')
+      };
+
+      /* ---------------------------------------------------------
+         輕量提示框（取代 alert）
+         --------------------------------------------------------- */
+      let toastTimeout = null;
+      function showToast(message, duration = 2800) {
+        dom.toastBanner.textContent = message;
+        dom.toastBanner.classList.remove('hidden');
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          dom.toastBanner.classList.add('hidden');
+        }, duration);
+      }
+
+      /* ---------------------------------------------------------
+         虛擬馮老師狀態與頭像動畫控制
+         --------------------------------------------------------- */
+      function setTeacherVisualState(mode) {
+        // mode: 'idle' | 'listening' | 'speaking' | 'thinking'
+        dom.teacherAvatarWrapper.classList.remove('state-idle', 'state-listening', 'state-speaking');
+
+        if (mode === 'speaking') {
+          dom.teacherAvatarWrapper.classList.add('state-speaking');
+          dom.teacherMouthIdle.classList.add('hidden');
+          dom.teacherMouthSpeak.classList.remove('hidden');
+          dom.teacherStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping';
+          dom.teacherStatusText.textContent = '馮老師正在說話...';
+        } else if (mode === 'listening') {
+          dom.teacherAvatarWrapper.classList.add('state-listening');
+          dom.teacherMouthIdle.classList.remove('hidden');
+          dom.teacherMouthSpeak.classList.add('hidden');
+          dom.teacherStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping';
+          dom.teacherStatusText.textContent = '馮老師正在細心聽你說...';
+        } else if (mode === 'thinking') {
+          dom.teacherAvatarWrapper.classList.add('state-idle');
+          dom.teacherMouthIdle.classList.remove('hidden');
+          dom.teacherMouthSpeak.classList.add('hidden');
+          dom.teacherStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse';
+          dom.teacherStatusText.textContent = '馮老師正在想一想...';
+        } else {
+          dom.teacherAvatarWrapper.classList.add('state-idle');
+          dom.teacherMouthIdle.classList.remove('hidden');
+          dom.teacherMouthSpeak.classList.add('hidden');
+          dom.teacherStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+          dom.teacherStatusText.textContent = '馮老師準備好聽你說話啦！';
+        }
+      }
+
+      /* ---------------------------------------------------------
+         更新頂部模式與語言標籤
+         --------------------------------------------------------- */
+      function updateHeaderBadges() {
+        const hasKey = Boolean(state.apiKey && state.apiKey.trim());
+        if (hasKey) {
+          dom.modeBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-300 truncate';
+          dom.modeBadge.textContent = '🤖 OpenAI 智慧模式';
+          dom.apiStatusTag.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-700';
+          dom.apiStatusTag.textContent = '目前：OpenAI 智慧模式';
+        } else {
+          dom.modeBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 truncate';
+          dom.modeBadge.textContent = '🟢 離線規則模擬模式（無需 API Key）';
+          dom.apiStatusTag.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+          dom.apiStatusTag.textContent = '目前：離線規則模擬模式（無需 API Key）';
+        }
+
+        const langLabels = {
+          'zh-HK': '🗣️ 廣東話 (zh-HK)',
+          'zh-TW': '🗣️ 普通話／國語 (zh-TW)',
+          'zh-CN': '🗣️ 普通話 (zh-CN)'
+        };
+        dom.langBadge.textContent = langLabels[state.sttLang] || '🗣️ 廣東話 (zh-HK)';
+      }
+
+      function updateStarUI() {
+        state.completedStars.forEach((earned, idx) => {
+          const el = document.getElementById(`star-${idx}`);
+          if (!el) return;
+          if (earned) {
+            el.textContent = '⭐';
+            el.classList.add('scale-125');
+          } else {
+            el.textContent = '☆';
+            el.classList.remove('scale-125');
+          }
+        });
+      }
+
+      /* ---------------------------------------------------------
+         文字轉語音 (TTS - Web Speech API speechSynthesis)
+         語速 rate: 0.85，音調 pitch: 1.1，自動驅動馮老師動畫
+         --------------------------------------------------------- */
+      function pickGentleChineseVoice() {
+        if (!('speechSynthesis' in window)) return null;
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices || voices.length === 0) return null;
+
+        // 依目前語言偏好尋找親切女聲 / 粵語或中文語音
+        const preferredLang = state.sttLang === 'zh-HK' ? 'zh-HK' : (state.sttLang === 'zh-TW' ? 'zh-TW' : 'zh-CN');
+        const langVoices = voices.filter(v => v.lang.toLowerCase().includes(preferredLang.toLowerCase()));
+        const allZhVoices = voices.filter(v => v.lang.toLowerCase().startsWith('zh'));
+
+        const pool = langVoices.length > 0 ? langVoices : allZhVoices;
+        if (pool.length === 0) return null;
+
+        // 優先選擇常見親切女聲名稱
+        const preferredNames = ['Sinji', 'HiuGaai', 'HiuMaan', 'Tracy', 'HsiaoChen', 'Mei-Jia', 'Google 粵語', 'Google 國語', 'Xiaoxiao'];
+        for (const name of preferredNames) {
+          const found = pool.find(v => v.name.includes(name));
+          if (found) return found;
+        }
+        return pool[0];
+      }
+
+      function speakTeacherMessage(text) {
+        state.lastTeacherMessage = text;
+
+        if (!('speechSynthesis' in window)) {
+          // 瀏覽器不支援 TTS 時仍模擬短暫說話視覺效果
+          setTeacherVisualState('speaking');
+          setTimeout(() => setTeacherVisualState('idle'), 1800);
+          return;
+        }
+
+        try {
+          window.speechSynthesis.cancel();
+          if (state.speakTimerFallback) clearTimeout(state.speakTimerFallback);
+
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = state.sttLang === 'zh-HK' ? 'zh-HK' : (state.sttLang === 'zh-TW' ? 'zh-TW' : 'zh-CN');
+          utterance.rate = 0.85;
+          utterance.pitch = 1.1;
+
+          const selectedVoice = pickGentleChineseVoice();
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+          }
+
+          utterance.onstart = () => {
+            state.isSpeaking = true;
+            if (!state.isListening) {
+              setTeacherVisualState('speaking');
+            }
+          };
+
+          const finishSpeaking = () => {
+            state.isSpeaking = false;
+            if (state.speakTimerFallback) clearTimeout(state.speakTimerFallback);
+            if (!state.isListening) {
+              setTeacherVisualState('idle');
+            }
+          };
+
+          utterance.onend = finishSpeaking;
+          utterance.onerror = finishSpeaking;
+
+          // 啟動說話動畫並設定安全超時（防止部分行動瀏覽器未觸發 onend）
+          setTeacherVisualState('speaking');
+          const estimatedMs = Math.max(2200, text.length * 360);
+          state.speakTimerFallback = setTimeout(finishSpeaking, estimatedMs);
+
+          window.speechSynthesis.speak(utterance);
+        } catch (err) {
+          console.error('TTS 朗讀發生錯誤：', err);
+          setTeacherVisualState('idle');
+        }
+      }
+
+      /* ---------------------------------------------------------
+         對話氣泡渲染區
+         --------------------------------------------------------- */
+      function scrollToBottom() {
+        requestAnimationFrame(() => {
+          dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
+        });
+      }
+
+      function appendMessageBubble(sender, text) {
+        // sender: 'teacher' | 'student'
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex items-end gap-2.5 sm:gap-3 bubble-animate ${
+          sender === 'student' ? 'justify-end' : 'justify-start'
+        }`;
+
+        if (sender === 'teacher') {
+          // 馮老師頭像小徽章
+          const badge = document.createElement('div');
+          badge.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-xl shrink-0 shadow-xs';
+          badge.textContent = '👩‍🏫';
+
+          const bubbleBox = document.createElement('div');
+          bubbleBox.className = 'max-w-[82%] sm:max-w-[75%] bg-amber-50 border-2 border-amber-300 rounded-3xl rounded-bl-md px-4 py-3 sm:px-5 sm:py-3.5 shadow-xs';
+
+          const headerRow = document.createElement('div');
+          headerRow.className = 'flex items-center justify-between gap-3 mb-1';
+
+          const nameTag = document.createElement('span');
+          nameTag.className = 'text-xs sm:text-sm font-black text-amber-800';
+          nameTag.textContent = '馮老師';
+
+          const miniSpeakBtn = document.createElement('button');
+          miniSpeakBtn.type = 'button';
+          miniSpeakBtn.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-amber-200/80 hover:bg-amber-300 text-amber-900 transition cursor-pointer';
+          miniSpeakBtn.textContent = '🔊 朗讀';
+          miniSpeakBtn.title = '朗讀這句話';
+          miniSpeakBtn.addEventListener('click', () => {
+            if (state.isListening) stopListening();
+            speakTeacherMessage(text);
+          });
+
+          headerRow.appendChild(nameTag);
+          headerRow.appendChild(miniSpeakBtn);
+
+          const msgP = document.createElement('p');
+          msgP.className = 'text-lg sm:text-xl md:text-2xl font-bold text-slate-800 leading-relaxed break-words';
+          msgP.textContent = text;
+
+          bubbleBox.appendChild(headerRow);
+          bubbleBox.appendChild(msgP);
+          wrapper.appendChild(badge);
+          wrapper.appendChild(bubbleBox);
+        } else {
+          // 學生對話氣泡（大字體顯示語音轉文字結果，方便小一核對）
+          const bubbleBox = document.createElement('div');
+          bubbleBox.className = 'max-w-[82%] sm:max-w-[75%] bg-sky-100 border-2 border-sky-300 rounded-3xl rounded-br-md px-4 py-3 sm:px-5 sm:py-3.5 shadow-xs';
+
+          const nameTag = document.createElement('div');
+          nameTag.className = 'text-xs sm:text-sm font-black text-sky-800 mb-1 text-right';
+          nameTag.textContent = '我說的話';
+
+          const msgP = document.createElement('p');
+          msgP.className = 'text-lg sm:text-xl md:text-2xl font-bold text-slate-800 leading-relaxed break-words';
+          msgP.textContent = text;
+
+          bubbleBox.appendChild(nameTag);
+          bubbleBox.appendChild(msgP);
+
+          const badge = document.createElement('div');
+          badge.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-sky-200 border-2 border-sky-300 flex items-center justify-center text-xl shrink-0 shadow-xs';
+          badge.textContent = '🧒';
+
+          wrapper.appendChild(bubbleBox);
+          wrapper.appendChild(badge);
+        }
+
+        dom.chatContainer.appendChild(wrapper);
+        scrollToBottom();
+      }
+
+      function updateInterimBubble(interimText) {
+        if (!interimText) {
+          removeInterimBubble();
+          return;
+        }
+        if (!state.interimBubbleEl) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'flex items-end gap-2.5 justify-end opacity-80';
+
+          const bubbleBox = document.createElement('div');
+          bubbleBox.className = 'max-w-[82%] sm:max-w-[75%] bg-emerald-50 border-2 border-dashed border-emerald-400 rounded-3xl rounded-br-md px-4 py-2.5';
+
+          const label = document.createElement('div');
+          label.className = 'text-xs font-bold text-emerald-700 mb-0.5 text-right';
+          label.textContent = '🎙️ 正在聆聽...';
+
+          const textEl = document.createElement('p');
+          textEl.className = 'interim-text text-lg sm:text-xl font-bold text-emerald-900';
+
+          bubbleBox.appendChild(label);
+          bubbleBox.appendChild(textEl);
+          wrapper.appendChild(bubbleBox);
+
+          dom.chatContainer.appendChild(wrapper);
+          state.interimBubbleEl = wrapper;
+        }
+        const p = state.interimBubbleEl.querySelector('.interim-text');
+        if (p) p.textContent = interimText;
+        scrollToBottom();
+      }
+
+      function removeInterimBubble() {
+        if (state.interimBubbleEl && state.interimBubbleEl.parentNode) {
+          state.interimBubbleEl.parentNode.removeChild(state.interimBubbleEl);
+        }
+        state.interimBubbleEl = null;
+      }
+
+      /* ---------------------------------------------------------
+         核心教學邏輯：離線規則模擬引擎（嚴格依序 1 -> 5 檢查）
+         --------------------------------------------------------- */
+      function evaluateStudentSentenceOffline(rawInput) {
+        // 清理首尾空白與標點
+        let text = rawInput.trim().replace(/[。！!，,、\s]+/g, '');
+        if (!text) {
+          return '請你以「……會……嗎？」進行交談。';
+        }
+
+        // 語音辨識常見同音字微調：
+        // 1. 「馮老師」在粵語 STT 偶爾被辨識成「逢老師」或「洪老師」
+        text = text.replace(/^(逢老師|洪老師)/, '馮老師');
+        // 2. 句尾疑問詞「嗎」在粵語 STT 偶爾被辨識為同音「嘛」
+        text = text.replace(/嘛([？?]?)$/, '嗎$1');
+
+        /* -------------------------------------------------------
+           【檢查 1：非廣東話口語檢查】
+           若學生使用廣東話口語字眼，提示：「請你以『……會……嗎？』進行交談。」
+           ------------------------------------------------------- */
+        const cantoneseColloquialPatterns = [
+          '呢個', '嗰個', '唔係', '點解', '做咩', '做乜', '係咪', '識唔識',
+          '唔會', '唔識', '乜嘢', '邊個', '邊度', '幾時', '點樣', '點算',
+          '踢波', '睇書', '畫公仔', '好唔好', '得唔得',
+          '唔', '佢', '嘅', '咗', '啲', '喺', '冇', '睇', '呀', '咩',
+          '啦', '喎', '㗎', '咁', '仲', '識'
+        ];
+
+        for (const word of cantoneseColloquialPatterns) {
+          if (text.includes(word)) {
+            return '請你以「……會……嗎？」進行交談。';
+          }
+        }
+
+        /* -------------------------------------------------------
+           【檢查 2：句式結構檢查】
+           必須符合「……會……嗎？」結構
+           ------------------------------------------------------- */
+        const cleanNoQ = text.replace(/[？?]+$/g, '');
+        const huiIndex = cleanNoQ.indexOf('會');
+        const endsWithMa = cleanNoQ.endsWith('嗎');
+
+        if (huiIndex === -1 || !endsWithMa) {
+          return '請你以「……會……嗎？」進行交談。';
+        }
+
+        const subjectPart = cleanNoQ.slice(0, huiIndex).trim();
+        const actionPart = cleanNoQ.slice(huiIndex + 1, -1).trim(); // 去除最後的「嗎」
+
+        /* -------------------------------------------------------
+           【檢查 3：人物開頭檢查】
+           句子開頭必須是「馮老師」
+           ------------------------------------------------------- */
+        if (subjectPart !== '馮老師') {
+          return '一開始要出現人物。';
+        }
+
+        /* -------------------------------------------------------
+           【檢查 4：動詞接續檢查】
+           「會」之後必須出現「事情」（動詞 / 活動）
+           ------------------------------------------------------- */
+        if (!actionPart) {
+          return '「會」之後要出現事情。';
+        }
+
+        // 常見非動詞（名詞 / 形容詞 / 代詞）黑名單，明確判定為不是「事情」
+        const nonActionWords = [
+          '蘋果', '香蕉', '西瓜', '書本', '書', '足球', '籃球', '魔術',
+          '老師', '學生', '同學', '媽媽', '爸爸', '小狗', '小貓', '貓', '狗',
+          '水', '飯', '麵包', '牛奶', '玩具', '花', '樹', '太陽', '月亮',
+          '學校', '課室', '公園', '汽車', '巴士', '飛機', '衣服', '鞋子',
+          '開心', '快樂', '漂亮', '美麗', '聰明', '高', '矮', '大', '小',
+          '好', '壞', '快', '慢', '冷', '熱', '可愛', '乖', '辛苦', '生氣',
+          '什麼', '東西', '這個', '那個', '這樣', '那樣', '名字', '顏色'
+        ];
+
+        if (nonActionWords.includes(actionPart)) {
+          return '「會」之後要出現事情。';
+        }
+
+        // 常見動詞與活動白名單／字首檢核
+        const knownActions = [
+          '踢足球', '打掃', '畫畫', '變魔術', '看書',
+          '游泳', '遊水', '唱歌', '跳舞', '跑步', '寫字', '讀書', '做功課',
+          '煮飯', '做飯', '吃飯', '喝水', '睡覺', '刷牙', '洗臉', '洗手',
+          '彈琴', '彈鋼琴', '吹笛子', '拉小提琴', '說故事', '講故事',
+          '摺紙', '折紙', '剪紙', '做手工', '塗顏色', '畫圖', '畫圖畫',
+          '騎單車', '騎自行車', '打籃球', '打羽毛球', '打乒乓球', '踢毽子',
+          '跳繩', '跳高', '跳遠', '爬山', '行山', '散步', '做運動', '做體操',
+          '收拾', '整理', '幫忙', '照顧', '學習', '溫習', '複習', '默書',
+          '朗誦', '拍手', '微笑', '飛', '飛翔', '開車', '駕駛', '種花',
+          '澆水', '釣魚', '溜冰', '滑冰', '滑雪', '下棋', '玩遊戲',
+          '聽音樂', '看電視', '看電影', '拍照', '攝影', '算術', '計算',
+          '穿衣服', '綁鞋帶', '掃地', '抹桌子', '擦黑板', '洗碗'
+        ];
+
+        const verbPrefixes = [
+          '踢', '打', '畫', '變', '看', '讀', '寫', '唱', '跳', '跑',
+          '游', '遊', '做', '學', '玩', '吃', '喝', '睡', '洗', '刷',
+          '穿', '煮', '炒', '彈', '吹', '拉', '說', '講', '聽', '問',
+          '走', '去', '來', '飛', '爬', '騎', '開', '關', '買', '送',
+          '種', '澆', '剪', '貼', '摺', '折', '釣', '滑', '下', '拍',
+          '幫', '掃', '抹', '擦', '收拾', '整理', '照顧', '練習', '複習'
+        ];
+
+        const isAction =
+          knownActions.includes(actionPart) ||
+          (actionPart.length >= 2 && verbPrefixes.some(prefix => actionPart.startsWith(prefix)));
+
+        if (!isAction) {
+          return '「會」之後要出現事情。';
+        }
+
+        /* -------------------------------------------------------
+           【檢查 5：核對工作紙指定題庫】
+           ------------------------------------------------------- */
+        for (const item of WORKSHEET_QA) {
+          if (item.aliases.includes(actionPart)) {
+            // 點亮該題進度星星
+            state.completedStars[item.id] = true;
+            updateStarUI();
+            return item.reply;
+          }
+        }
+
+        // 符合句式規範但不在工作紙 5 題之內
+        return '請你根據工作紙發問。';
+      }
+
+      /* ---------------------------------------------------------
+         串接 OpenAI API（若有填入 Key 則優先呼叫，失敗自動無縫降級至離線引擎）
+         --------------------------------------------------------- */
+      async function getTeacherReply(studentText) {
+        const trimmedKey = (state.apiKey || '').trim();
+
+        // 若未設定 API Key，直接使用離線規則模擬模式
+        if (!trimmedKey) {
+          return evaluateStudentSentenceOffline(studentText);
+        }
+
+        try {
+          // 建構最近對話紀錄作為上下文
+          const recentMessages = state.chatHistory.slice(-6).map(item => ({
+            role: item.sender === 'teacher' ? 'assistant' : 'user',
+            content: item.text
+          }));
+
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${trimmedKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              temperature: 0.2,
+              max_tokens: 120,
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                ...recentMessages,
+                { role: 'user', content: studentText }
+              ]
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`OpenAI API HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          const aiReply = data?.choices?.[0]?.message?.content?.trim();
+          if (!aiReply) {
+            throw new Error('OpenAI 回傳內容為空');
+          }
+
+          // 若答中工作紙題庫之一，也同步點亮對應進度星星
+          WORKSHEET_QA.forEach(item => {
+            if (aiReply.includes(item.action)) {
+              state.completedStars[item.id] = true;
+            }
+          });
+          updateStarUI();
+
+          return aiReply;
+        } catch (error) {
+          console.warn('OpenAI API 呼叫失敗，自動切換回離線規則模擬模式：', error);
+          showToast('網路或金鑰連線異常，已自動切換為離線規則模式運作', 3000);
+          return evaluateStudentSentenceOffline(studentText);
+        }
+      }
+
+      /* ---------------------------------------------------------
+         處理學生完整說出的一句話
+         --------------------------------------------------------- */
+      async function handleStudentUtterance(spokenText) {
+        const cleanText = spokenText.trim();
+        if (!cleanText) return;
+
+        // 1. 顯示學生氣泡（供小一學生核對）
+        state.chatHistory.push({ sender: 'student', text: cleanText });
+        appendMessageBubble('student', cleanText);
+
+        // 2. 取得馮老師回覆
+        state.isThinking = true;
+        setTeacherVisualState('thinking');
+
+        const reply = await getTeacherReply(cleanText);
+
+        state.isThinking = false;
+        state.chatHistory.push({ sender: 'teacher', text: reply });
+        appendMessageBubble('teacher', reply);
+
+        // 3. 自動朗讀馮老師回覆
+        speakTeacherMessage(reply);
+      }
+
+      /* ---------------------------------------------------------
+         語音轉文字 (STT - Web Speech API SpeechRecognition)
+         --------------------------------------------------------- */
+      function updateMicButtonUI(listening) {
+        if (listening) {
+          dom.micBtn.className =
+            'relative z-10 flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-3.5 rounded-full bg-gradient-to-b from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 active:scale-95 text-white border-3 border-white shadow-md font-black text-base sm:text-xl tracking-wide transition cursor-pointer min-w-[165px] sm:min-w-[225px]';
+          dom.micBtnIcon.textContent = '⏹️';
+          dom.micBtnLabel.textContent = '正在聆聽...';
+          dom.micRipple1.classList.remove('hidden');
+          dom.micRipple2.classList.remove('hidden');
+          dom.micHintText.textContent = '🎙️ 馮老師正在細心聽你說...（說完或再按一下停止）';
+          dom.micHintText.className = 'text-xs sm:text-sm font-black text-rose-600 mb-1.5 text-center leading-snug';
+        } else {
+          dom.micBtn.className =
+            'relative z-10 flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-3.5 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 active:scale-95 text-white border-3 border-white shadow-md font-black text-base sm:text-xl tracking-wide transition cursor-pointer min-w-[165px] sm:min-w-[225px]';
+          dom.micBtnIcon.textContent = '🎤';
+          dom.micBtnLabel.textContent = '按一下開始說話';
+          dom.micRipple1.classList.add('hidden');
+          dom.micRipple2.classList.add('hidden');
+          dom.micHintText.textContent = '按綠色按鈕直接說話，或點上方輸入框用鍵盤「麥克風聽寫」喔！';
+          dom.micHintText.className = 'text-xs sm:text-sm font-bold text-slate-600 mb-1.5 text-center leading-snug';
+        }
+      }
+
+      function stopListening() {
+        state.isListening = false;
+        updateMicButtonUI(false);
+        removeInterimBubble();
+        if (state.recognition) {
+          try {
+            state.recognition.stop();
+          } catch (e) {
+            // 忽略重複停止時的狀態錯誤
+          }
+          state.recognition = null;
+        }
+        if (!state.isSpeaking && !state.isThinking) {
+          setTeacherVisualState('idle');
+        }
+      }
+
+      function guideToKeyboardInput(reasonMsg) {
+        showToast(reasonMsg, 4200);
+        dom.micHintText.textContent = '💡 提示：點一下上方輸入框，按平板鍵盤的「🎤 麥克風」即可語音輸入文字！';
+        dom.micHintText.className = 'text-xs sm:text-sm font-black text-orange-600 mb-1.5 text-center leading-snug';
+        dom.studentTextInput.classList.add('ring-4', 'ring-orange-300', 'border-orange-500');
+        setTimeout(() => {
+          dom.studentTextInput.classList.remove('ring-4', 'ring-orange-300', 'border-orange-500');
+        }, 3200);
+      }
+
+      function startListening() {
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionAPI) {
+          guideToKeyboardInput('此瀏覽器不支援直接麥克風，請點上方輸入框使用鍵盤「語音輸入（聽寫）」或打字喔！');
+          dom.studentTextInput.focus();
+          return;
+        }
+
+        // 若馮老師正在朗讀，先停止朗讀以免麥克風收到老師自己的聲音
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          state.isSpeaking = false;
+        }
+
+        if (state.isListening) {
+          stopListening();
+          return;
+        }
+
+        try {
+          const recognition = new SpeechRecognitionAPI();
+          recognition.lang = state.sttLang;
+          recognition.continuous = false;
+          recognition.interimResults = true;
+          recognition.maxAlternatives = 1;
+
+          state.finalTranscriptBuffer = '';
+          state.recognition = recognition;
+
+          recognition.onstart = () => {
+            state.isListening = true;
+            updateMicButtonUI(true);
+            setTeacherVisualState('listening');
+          };
+
+          recognition.onresult = (event) => {
+            let interim = '';
+            let finalChunk = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalChunk += transcript;
+              } else {
+                interim += transcript;
+              }
+            }
+
+            if (finalChunk) {
+              state.finalTranscriptBuffer += finalChunk;
+            }
+
+            const preview = (state.finalTranscriptBuffer + interim).trim();
+            if (preview) {
+              updateInterimBubble(preview);
+            }
+          };
+
+          recognition.onerror = (event) => {
+            console.warn('SpeechRecognition 錯誤：', event.error);
+            state.isListening = false;
+            updateMicButtonUI(false);
+            removeInterimBubble();
+            setTeacherVisualState('idle');
+
+            if (event.error === 'no-speech') {
+              guideToKeyboardInput('馮老師沒聽到聲音，你可以再按一次說話，或點上方輸入框用鍵盤語音聽寫喔！');
+            } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+              guideToKeyboardInput('裝置未允許網頁麥克風權限，請改點上方輸入框，按鍵盤上的「🎤 語音輸入」或打字吧！');
+            } else if (event.error !== 'aborted') {
+              guideToKeyboardInput('語音收音遇到一點小問題，你可以改用上方輸入框的鍵盤語音輸入喔！');
+            }
+          };
+
+          recognition.onend = () => {
+            const captured = state.finalTranscriptBuffer.trim();
+            state.isListening = false;
+            updateMicButtonUI(false);
+            removeInterimBubble();
+
+            if (captured) {
+              handleStudentUtterance(captured);
+            } else if (!state.isSpeaking && !state.isThinking) {
+              setTeacherVisualState('idle');
+            }
+          };
+
+          recognition.start();
+        } catch (err) {
+          console.error('啟動語音辨識失敗：', err);
+          state.isListening = false;
+          updateMicButtonUI(false);
+          setTeacherVisualState('idle');
+          showToast('無法啟動麥克風，請重新整理頁面再試一次。', 3000);
+        }
+      }
+
+      /* ---------------------------------------------------------
+         初始化與重置練習流程
+         --------------------------------------------------------- */
+      function resetConversation(shouldSpeak = true) {
+        if (state.isListening) {
+          stopListening();
+        }
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+
+        state.chatHistory = [];
+        state.completedStars = [false, false, false, false, false];
+        updateStarUI();
+        dom.chatContainer.innerHTML = '';
+
+        // 馮老師說出開場白
+        state.chatHistory.push({ sender: 'teacher', text: GREETING_TEXT });
+        appendMessageBubble('teacher', GREETING_TEXT);
+
+        if (shouldSpeak) {
+          speakTeacherMessage(GREETING_TEXT);
+        }
+      }
+
+      /* ---------------------------------------------------------
+         事件監聽綁定
+         --------------------------------------------------------- */
+      // 0. 學生文字／鍵盤語音輸入（聽寫）表單送出
+      dom.textInputForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (state.isThinking) return;
+        if (state.isListening) {
+          stopListening();
+        }
+        const typedText = dom.studentTextInput.value.trim();
+        if (!typedText) {
+          showToast('請先用鍵盤語音聽寫或輸入你想問馮老師的句子喔！', 2500);
+          dom.studentTextInput.focus();
+          return;
+        }
+        dom.studentTextInput.value = '';
+        handleStudentUtterance(typedText);
+      });
+
+      // 範圍小提示切換
+      dom.toggleHintBtn.addEventListener('click', () => {
+        dom.topicHintBar.classList.toggle('hidden');
+      });
+
+      // iPad / 手機虛擬鍵盤彈出與收起時的視窗高度自適應
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+          const isKeyboardLikelyOpen = window.visualViewport.height < window.innerHeight * 0.75;
+          document.body.classList.toggle('keyboard-open', isKeyboardLikelyOpen);
+          scrollToBottom();
+        });
+      }
+      dom.studentTextInput.addEventListener('focus', () => {
+        setTimeout(scrollToBottom, 250);
+      });
+
+      // 1. 歡迎卡片「開始練習」按鈕
+      dom.startPracticeBtn.addEventListener('click', () => {
+        dom.welcomeModal.classList.add('hidden');
+        resetConversation(true);
+      });
+
+      // 2. 麥克風按鈕（點擊開始／停止語音辨識）
+      dom.micBtn.addEventListener('click', () => {
+        if (state.isThinking) return;
+        startListening();
+      });
+
+      // 3. 重聽馮老師說話按鈕
+      dom.replayBtn.addEventListener('click', () => {
+        if (state.isListening) {
+          stopListening();
+        }
+        if (state.lastTeacherMessage) {
+          speakTeacherMessage(state.lastTeacherMessage);
+        }
+      });
+
+      // 4. 重新開始練習按鈕
+      dom.restartBtn.addEventListener('click', () => {
+        resetConversation(true);
+        showToast('已重新開始練習！', 2000);
+      });
+
+      // 5. 老師／家長設定彈窗控制
+      dom.openSettingsBtn.addEventListener('click', () => {
+        if (state.isListening) stopListening();
+        dom.sttLangSelect.value = state.sttLang;
+        dom.apiKeyInput.value = state.apiKey;
+        dom.apiKeyInput.type = 'password';
+        dom.toggleKeyVisibilityBtn.textContent = '顯示';
+        updateHeaderBadges();
+        dom.settingsModal.classList.remove('hidden');
+      });
+
+      dom.closeSettingsBtn.addEventListener('click', () => {
+        dom.settingsModal.classList.add('hidden');
+      });
+
+      dom.settingsModal.addEventListener('click', (e) => {
+        if (e.target === dom.settingsModal) {
+          dom.settingsModal.classList.add('hidden');
+        }
+      });
+
+      dom.toggleKeyVisibilityBtn.addEventListener('click', () => {
+        if (dom.apiKeyInput.type === 'password') {
+          dom.apiKeyInput.type = 'text';
+          dom.toggleKeyVisibilityBtn.textContent = '隱藏';
+        } else {
+          dom.apiKeyInput.type = 'password';
+          dom.toggleKeyVisibilityBtn.textContent = '顯示';
+        }
+      });
+
+      dom.clearKeyBtn.addEventListener('click', () => {
+        dom.apiKeyInput.value = '';
+        state.apiKey = '';
+        localStorage.removeItem(STORAGE_KEY_API);
+        updateHeaderBadges();
+        showToast('已清除 API Key，切換為離線規則模擬模式', 2400);
+      });
+
+      dom.saveSettingsBtn.addEventListener('click', () => {
+        const newLang = dom.sttLangSelect.value;
+        const newKey = dom.apiKeyInput.value.trim();
+
+        state.sttLang = newLang;
+        state.apiKey = newKey;
+
+        localStorage.setItem(STORAGE_KEY_LANG, newLang);
+        if (newKey) {
+          localStorage.setItem(STORAGE_KEY_API, newKey);
+        } else {
+          localStorage.removeItem(STORAGE_KEY_API);
+        }
+
+        updateHeaderBadges();
+        dom.settingsModal.classList.add('hidden');
+        showToast('設定已儲存！', 2000);
+      });
+
+      // 預載語音清單（Chrome / Safari 需監聽 voiceschanged）
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.getVoices();
+        };
+      }
+
+      // 初始狀態同步
+      updateHeaderBadges();
+    })();
+  </script>
+</body>
+</html>
